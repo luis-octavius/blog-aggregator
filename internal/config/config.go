@@ -1,16 +1,16 @@
-package config 
+package config
 
 import (
-	"os"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
+	"os"
 )
 
 const configFileName = ".gatorconfig.json"
 
 type Config struct {
-	Db_url 						string `json:"db_url"`  
+	Db_url            string `json:"db_url"`
 	Current_user_name string `json:"current_user_name"`
 }
 
@@ -28,21 +28,21 @@ func Read() Config {
 	}
 
 	defer configFile.Close()
-	
+
 	data := make([]byte, 200)
 	_, err = configFile.Read(data)
 	if err != nil {
 		fmt.Printf("error reading the contents of config file: %v\n", err)
 	}
 
-	trimmedBytes := bytes.Trim(data, "\x00") // 
+	trimmedBytes := bytes.Trim(data, "\x00") //
 
 	cfg := Config{
-		Db_url: "postgres://example", 
+		Db_url:            "postgres://example",
 		Current_user_name: "default",
-	} 
+	}
 
-	err = json.Unmarshal(trimmedBytes, &cfg) 
+	err = json.Unmarshal(trimmedBytes, &cfg)
 	if err != nil {
 		fmt.Printf("error unmarshaling data from config file: %v\n", err)
 		return Config{}
@@ -52,16 +52,12 @@ func Read() Config {
 }
 
 func (cfg Config) SetUser(currentUser string) error {
-	cfg.Current_user_name = currentUser 
+	cfg.Current_user_name = currentUser
 
 	err := write(cfg)
 	if err != nil {
-		fmt.Printf("error setting user: %v\n", err) 
+		fmt.Printf("error setting user: %v\n", err)
 	}
 
-	return nil 
+	return nil
 }
-
-
-
-
