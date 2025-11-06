@@ -1,9 +1,11 @@
-package types 
+package types
 
 import (
 	"github.com/luis-octavius/blog-aggregator/internal/config"
+	"github.com/luis-octavius/blog-aggregator/internal/database"
 )
 
 type State struct {
-	Config *config.Config 
+	Db     *database.Queries
+	Config *config.Config
 }
