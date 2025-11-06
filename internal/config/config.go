@@ -14,17 +14,15 @@ type Config struct {
 	Current_user_name string `json:"current_user_name"`
 }
 
-func Read() Config {
+func Read() (Config, error) {
 	configFilePath, err := getConfigFilePath()
-	fmt.Println("config file path: ", configFilePath)
 	if err != nil {
-		return Config{}
+		return Config{}, err  
 	}
 
 	configFile, err := os.Open(configFilePath)
 	if err != nil {
-		fmt.Printf("error opening config file: %v\n", err)
-		return Config{}
+		return Config{}, fmt.Errorf("error opening config file: %v\n", err)
 	}
 
 	defer configFile.Close()
@@ -32,23 +30,22 @@ func Read() Config {
 	data := make([]byte, 200)
 	_, err = configFile.Read(data)
 	if err != nil {
-		fmt.Printf("error reading the contents of config file: %v\n", err)
+		return Config{}, fmt.Errorf("error reading the contents of config file: %v\n", err)
 	}
 
-	trimmedBytes := bytes.Trim(data, "\x00") //
+	trimmedBytes := bytes.Trim(data, "\x00") 
 
 	cfg := Config{
 		Db_url:            "postgres://example",
-		Current_user_name: "default",
+		Current_user_name: "default",	
 	}
 
 	err = json.Unmarshal(trimmedBytes, &cfg)
 	if err != nil {
-		fmt.Printf("error unmarshaling data from config file: %v\n", err)
-		return Config{}
+		return Config{}, fmt.Errorf("error unmarshaling data from config file: %v\n", err)
 	}
 
-	return cfg
+	return cfg, nil 
 }
 
 func (cfg Config) SetUser(currentUser string) error {
