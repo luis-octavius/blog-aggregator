@@ -1,31 +1,48 @@
 package main
 
+import _ "github.com/lib/pq"
+
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
-	"github.com/luis-octavius/blog-aggregator/internal/config"
-	"github.com/luis-octavius/blog-aggregator/internal/types"
 	"github.com/luis-octavius/blog-aggregator/internal/cli"
+	"github.com/luis-octavius/blog-aggregator/internal/config"
+	"github.com/luis-octavius/blog-aggregator/internal/database"
+	"github.com/luis-octavius/blog-aggregator/internal/types"
 )
 
 func main() {
+	dbUrl := "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable"
+
+	// opens connection with database
+	db, err := sql.Open("postgres", dbUrl)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+
+	dbQueries := database.New(db)
+
 	cfg, err := config.Read()
 	if err != nil {
-		fmt.Errorf("error creating config: %v", err)
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	state := types.State{
+		Db:     dbQueries,
 		Config: &cfg,
-	} 	
+	}
 
 	commandsHandler := cli.Commands{
 		Commands: map[string]func(*types.State, cli.Command) error{},
 	}
 
 	commandsHandler.Register("login", cli.HandlerLogin)
-	
-	args := os.Args 
+	commandsHandler.Register("register", cli.HandlerRegister)
+	commandsHandler.Register("reset", cli.HandlerDelete)
+
+	args := os.Args
 
 	fmt.Println(args)
 
