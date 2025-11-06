@@ -17,7 +17,7 @@ type Config struct {
 func Read() (Config, error) {
 	configFilePath, err := getConfigFilePath()
 	if err != nil {
-		return Config{}, err  
+		return Config{}, err
 	}
 
 	configFile, err := os.Open(configFilePath)
@@ -33,11 +33,11 @@ func Read() (Config, error) {
 		return Config{}, fmt.Errorf("error reading the contents of config file: %v\n", err)
 	}
 
-	trimmedBytes := bytes.Trim(data, "\x00") 
+	trimmedBytes := bytes.Trim(data, "\x00")
 
 	cfg := Config{
-		Db_url:            "postgres://example",
-		Current_user_name: "default",	
+		Db_url:            "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable",
+		Current_user_name: "default",
 	}
 
 	err = json.Unmarshal(trimmedBytes, &cfg)
@@ -45,7 +45,7 @@ func Read() (Config, error) {
 		return Config{}, fmt.Errorf("error unmarshaling data from config file: %v\n", err)
 	}
 
-	return cfg, nil 
+	return cfg, nil
 }
 
 func (cfg Config) SetUser(currentUser string) error {
