@@ -107,3 +107,25 @@ func HandlerDelete(s *types.State, cmd Command) error {
 	fmt.Println("rows succesfully deleted")
 	return nil
 }
+
+func HandlerUsers(s *types.State, cmd Command) error {
+	ctx := context.Background() 
+
+	queries := s.Db 
+
+	users, err := queries.GetUsers(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting users from database: %w", err)
+	}
+
+	currentUser := s.Config.Current_user_name
+	for _, user := range users {
+		if currentUser == user.Name {
+			fmt.Printf(" - %s (current)\n", user.Name)
+		} else {
+			fmt.Printf(" - %s\n", user.Name)
+		}
+	}
+
+	return nil
+}
