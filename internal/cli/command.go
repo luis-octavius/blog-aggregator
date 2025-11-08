@@ -108,17 +108,24 @@ func HandlerDelete(s *types.State, cmd Command) error {
 	return nil
 }
 
+// HandlerUsers lists all users from the database and displays their status. 
+// it highlights the currently authenticated user with a special marker. 
+// returns an error if the database query fails 
 func HandlerUsers(s *types.State, cmd Command) error {
 	ctx := context.Background() 
 
 	queries := s.Db 
 
+	// retrieve all users from database - fails if query execution errors
 	users, err := queries.GetUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting users from database: %w", err)
 	}
 
+	// get currently authenticated user from configuration 
 	currentUser := s.Config.Current_user_name
+
+	// display users with visual indicator for current user 
 	for _, user := range users {
 		if currentUser == user.Name {
 			fmt.Printf(" - %s (current)\n", user.Name)
