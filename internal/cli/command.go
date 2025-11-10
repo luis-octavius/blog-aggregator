@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luis-octavius/blog-aggregator/internal/database"
 	"github.com/luis-octavius/blog-aggregator/internal/types"
+	"github.com/luis-octavius/blog-aggregator/internal/feed"
 )
 
 // Command represents a CLI command 
@@ -136,3 +137,17 @@ func HandlerUsers(s *types.State, cmd Command) error {
 
 	return nil
 }
+
+// HandleAgg print RSSFeed data by calling FetchFeed(ctx context, feedURl string)
+// returns an error if FetchFeed fails to retrieve a RSS Struct 
+func HandleAgg(s *types.State, cmd Command) error {
+	ctx := context.Background()
+	rss, err := feed.FetchFeed(ctx, "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return fmt.Errorf("error fetching feed: %w", err)
+	}
+
+	fmt.Println("Rss:", rss)
+
+	return nil 
+} 

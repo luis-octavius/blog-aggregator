@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-
+	
 	dbUrl := cfg.Db_url
 
 	// establish connection with database
@@ -46,6 +46,7 @@ func main() {
 	commandsHandler.Register("register", cli.HandlerRegister)
 	commandsHandler.Register("reset", cli.HandlerDelete)
 	commandsHandler.Register("users", cli.HandlerUsers)
+	commandsHandler.Register("agg", cli.HandleAgg)
 
 	args := os.Args
 
