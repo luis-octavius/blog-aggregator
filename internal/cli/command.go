@@ -151,3 +151,38 @@ func HandleAgg(s *types.State, cmd Command) error {
 
 	return nil 
 } 
+
+func HandleAddFeed(s *types.State, cmd Command) error {
+	if len(cmd.Args) < 2 {
+		return fmt.Errorf("not enough arguments provided")
+	}
+
+	ctx := context.Background()
+
+	name := cmd.Args[0]
+	url := cmd.Args[1]
+
+	queries := s.Db
+	currentUser := s.Config.Current_user_name
+
+	queryActualUser, err := queries.GetUser(ctx, currentUser) 
+	if err != nil {
+		return fmt.Errorf("error getting current user in query GetUser: %w", err)
+	}
+
+	insertedFeed, err := queries.CreateFeed(ctx, database.CreateFeedParams{
+		Name: name, 
+		Url: url, 
+		UserID: queryActualUser.ID, 
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		return fmt.Errorf("error inserting feed in query CreateFeed: %w", err)
+	}
+
+	fmt.Println("feed recorded succesfully!")
+	fmt.Printf("ID: %v\nName: %v\nUrl: %v\nCreated At: %v\nUpdated At: %v\n", insertedFeed.ID, insertedFeed.Url, insertedFeed.UserID, insertedFeed.CreatedAt, insertedFeed.UpdatedAt)
+
+	return nil 
+}

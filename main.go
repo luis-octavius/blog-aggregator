@@ -47,6 +47,7 @@ func main() {
 	commandsHandler.Register("reset", cli.HandlerDelete)
 	commandsHandler.Register("users", cli.HandlerUsers)
 	commandsHandler.Register("agg", cli.HandleAgg)
+	commandsHandler.Register("addfeed", cli.HandleAddFeed)
 
 	args := os.Args
 
