@@ -209,3 +209,47 @@ func HandleListFeeds(s *types.State, cmd Command) error {
 
 	return nil
 }
+
+// HandleFollow creates a feed_follows relationship between the current user and a feed. 
+// it validates the feed exists by URL and the user is authenticated, then creates 
+// the association in the database. On success, it displays the feed name and username. 
+//
+// returns error if:
+// - feed lookup by URL fails (feed doesn't exist)
+// - user retrieval fails (user not authenticated)
+// - feed follow creation fails (duplicate violation)
+func HandleFollow(s *types.State, cmd Command) error {
+	ctx := context.Background()
+
+	url := cmd.Args[0]
+	currentUser := s.Config.Current_user_name
+
+	queries := s.Db 
+	
+	// lookup feed by URL to ensures it exists 
+	feed, err := queries.GetFeedByUrl(ctx, url)
+	if err != nil {
+		return fmt.Errorf("error getting feed by provided url: %w", err)
+	}
+
+	// retrieve current logged user 
+	user, err := queries.GetUser(ctx, currentUser)
+	if err != nil {
+		return fmt.Errorf("error getting user by current user name: %w", err)
+	}
+
+	// create feed_follows association between user and feed 
+	insertFeedFollow, err := queries.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating feed follow: %w", err)
+	}
+
+	fmt.Printf("Feed's name: %v\nCurrent user: %v\n", insertFeedFollow.FeedName, insertFeedFollow.UserName)
+
+	return nil 
+}

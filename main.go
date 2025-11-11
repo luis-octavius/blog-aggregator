@@ -1,6 +1,6 @@
 package main
 
-import _ "github.com/lib/pq"
+ 
 
 import (
 	"database/sql"
@@ -10,6 +10,7 @@ import (
 	"github.com/luis-octavius/blog-aggregator/internal/cli"
 	"github.com/luis-octavius/blog-aggregator/internal/config"
 	"github.com/luis-octavius/blog-aggregator/internal/database"
+	_ "github.com/lib/pq"
 	"github.com/luis-octavius/blog-aggregator/internal/types"
 )
 
@@ -49,6 +50,7 @@ func main() {
 	commandsHandler.Register("agg", cli.HandleAgg)
 	commandsHandler.Register("addfeed", cli.HandleAddFeed)
 	commandsHandler.Register("feeds", cli.HandleListFeeds)
+	commandsHandler.Register("follow", cli.HandleFollow)
 
 	args := os.Args
 
