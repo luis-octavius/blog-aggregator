@@ -48,10 +48,9 @@ func main() {
 	commandsHandler.Register("users", cli.HandlerUsers)
 	commandsHandler.Register("agg", cli.HandleAgg)
 	commandsHandler.Register("addfeed", cli.HandleAddFeed)
+	commandsHandler.Register("feeds", cli.HandleListFeeds)
 
 	args := os.Args
-
-	fmt.Println(args)
 
 	// validate command-line arguments 
 	if len(args) < 2 {

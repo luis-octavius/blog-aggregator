@@ -186,3 +186,26 @@ func HandleAddFeed(s *types.State, cmd Command) error {
 
 	return nil 
 }
+
+// HandleListFeeds fetchs all feeds and prints all the 
+// records one by one showing name, url and the user 
+// that owns the feed 
+// 
+// returns an error if the query GetFeeds fails 
+func HandleListFeeds(s *types.State, cmd Command) error {
+	ctx := context.Background()
+
+	queries := s.Db 
+
+	listFeeds, err := queries.GetFeeds(ctx)
+	if err != nil {
+		return fmt.Errorf("error fetching the list of feeds: %w", err)
+	}
+
+	for _, feed := range listFeeds {
+		fmt.Println("")
+		fmt.Printf("Name: %v\nURL: %v\nUsername: %v\n", feed.Name, feed.Url, feed.Name_2)
+	}
+
+	return nil
+}

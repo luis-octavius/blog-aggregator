@@ -13,20 +13,18 @@ import (
 )
 
 const createFeed = `-- name: CreateFeed :one
-INSERT INTO feeds (id, name, url, user_id, created_at, updated_at)
+INSERT INTO feeds (name, url, user_id, created_at, updated_at)
 VALUES (
   $1,
   $2, 
   $3,
   $4, 
-  $5,
-  $6
+  $5
 )
 RETURNING id, name, url, user_id, created_at, updated_at
 `
 
 type CreateFeedParams struct {
-	ID        int32
 	Name      string
 	Url       string
 	UserID    uuid.UUID
@@ -36,7 +34,6 @@ type CreateFeedParams struct {
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
 	row := q.db.QueryRowContext(ctx, createFeed,
-		arg.ID,
 		arg.Name,
 		arg.Url,
 		arg.UserID,
@@ -97,6 +94,42 @@ DELETE FROM users
 func (q *Queries) DeleteUsers(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteUsers)
 	return err
+}
+
+const getFeeds = `-- name: GetFeeds :many
+SELECT feeds.name, feeds.url, users.name 
+FROM feeds 
+INNER JOIN users 
+ON feeds.user_id = users.id
+`
+
+type GetFeedsRow struct {
+	Name   string
+	Url    string
+	Name_2 string
+}
+
+func (q *Queries) GetFeeds(ctx context.Context) ([]GetFeedsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFeeds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFeedsRow
+	for rows.Next() {
+		var i GetFeedsRow
+		if err := rows.Scan(&i.Name, &i.Url, &i.Name_2); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUser = `-- name: GetUser :one

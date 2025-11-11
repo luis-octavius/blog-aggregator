@@ -19,13 +19,20 @@ DELETE FROM users;
 SELECT * FROM users;
 
 -- name: CreateFeed :one 
-INSERT INTO feeds (id, name, url, user_id, created_at, updated_at)
+INSERT INTO feeds (name, url, user_id, created_at, updated_at)
 VALUES (
   $1,
   $2, 
   $3,
   $4, 
-  $5,
-  $6
+  $5
 )
 RETURNING *;
+
+-- name: GetFeeds :many 
+SELECT feeds.name, feeds.url, users.name 
+FROM feeds 
+INNER JOIN users 
+ON feeds.user_id = users.id;
+
+

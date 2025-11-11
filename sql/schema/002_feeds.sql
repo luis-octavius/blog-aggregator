@@ -1,6 +1,6 @@
 -- +goose Up 
 CREATE TABLE feeds (
-  id INTEGER PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   url TEXT NOT NULL, 
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, 
