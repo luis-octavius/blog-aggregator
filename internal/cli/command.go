@@ -50,7 +50,7 @@ func HandlerLogin(s *types.State, cmd Command) error {
 	return nil
 }
 
-// HandleRegister creates a new user in the database and sets them as the current user. 
+// HandlerRegister creates a new user in the database and sets them as the current user. 
 // if the username already exists, the operation fails and the program exits. 
 // returns an error if username is not provided or user creation fails.
 func HandlerRegister(s *types.State, cmd Command) error {
@@ -138,9 +138,9 @@ func HandlerUsers(s *types.State, cmd Command) error {
 	return nil
 }
 
-// HandleAgg print RSSFeed data by calling FetchFeed(ctx context, feedURl string)
+// HandlerAgg print RSSFeed data by calling FetchFeed(ctx context, feedURl string)
 // returns an error if FetchFeed fails to retrieve a RSS Struct 
-func HandleAgg(s *types.State, cmd Command) error {
+func HandlerAgg(s *types.State, cmd Command) error {
 	ctx := context.Background()
 	rss, err := feed.FetchFeed(ctx, "https://www.wagslane.dev/index.xml")
 	if err != nil {
@@ -152,7 +152,7 @@ func HandleAgg(s *types.State, cmd Command) error {
 	return nil 
 } 
 
-func HandleAddFeed(s *types.State, cmd Command) error {
+func HandlerAddFeed(s *types.State, cmd Command, user database.User) error {
 	if len(cmd.Args) < 2 {
 		return fmt.Errorf("not enough arguments provided")
 	}
@@ -163,9 +163,8 @@ func HandleAddFeed(s *types.State, cmd Command) error {
 	url := cmd.Args[1]
 
 	queries := s.Db
-	currentUser := s.Config.Current_user_name
 
-	queryActualUser, err := queries.GetUser(ctx, currentUser) 
+	queryActualUser, err := queries.GetUser(ctx, user.Name) 
 	if err != nil {
 		return fmt.Errorf("error getting current user in query GetUser: %w", err)
 	}
@@ -181,18 +180,30 @@ func HandleAddFeed(s *types.State, cmd Command) error {
 		return fmt.Errorf("error inserting feed in query CreateFeed: %w", err)
 	}
 
+	_, err = queries.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: queryActualUser.ID, 
+		FeedID: insertedFeed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error adding feed in list of following feeds by user %v: %w", user, err)
+	}
+
+	fmt.Println("Feed follows added succesfully")
+
 	fmt.Println("feed recorded succesfully!")
 	fmt.Printf("ID: %v\nName: %v\nUrl: %v\nCreated At: %v\nUpdated At: %v\n", insertedFeed.ID, insertedFeed.Url, insertedFeed.UserID, insertedFeed.CreatedAt, insertedFeed.UpdatedAt)
 
 	return nil 
 }
 
-// HandleListFeeds fetchs all feeds and prints all the 
+// HandlerListFeeds fetchs all feeds and prints all the 
 // records one by one showing name, url and the user 
 // that owns the feed 
 // 
 // returns an error if the query GetFeeds fails 
-func HandleListFeeds(s *types.State, cmd Command) error {
+func HandlerListFeeds(s *types.State, cmd Command) error {
 	ctx := context.Background()
 
 	queries := s.Db 
@@ -210,7 +221,7 @@ func HandleListFeeds(s *types.State, cmd Command) error {
 	return nil
 }
 
-// HandleFollow creates a feed_follows relationship between the current user and a feed. 
+// HandlerFollow creates a feed_follows relationship between the current user and a feed. 
 // it validates the feed exists by URL and the user is authenticated, then creates 
 // the association in the database. On success, it displays the feed name and username. 
 //
@@ -218,11 +229,10 @@ func HandleListFeeds(s *types.State, cmd Command) error {
 // - feed lookup by URL fails (feed doesn't exist)
 // - user retrieval fails (user not authenticated)
 // - feed follow creation fails (duplicate violation)
-func HandleFollow(s *types.State, cmd Command) error {
+func HandlerFollow(s *types.State, cmd Command, user database.User) error {
 	ctx := context.Background()
 
 	url := cmd.Args[0]
-	currentUser := s.Config.Current_user_name
 
 	queries := s.Db 
 	
@@ -233,7 +243,7 @@ func HandleFollow(s *types.State, cmd Command) error {
 	}
 
 	// retrieve current logged user 
-	user, err := queries.GetUser(ctx, currentUser)
+	_, err = queries.GetUser(ctx, user.Name)
 	if err != nil {
 		return fmt.Errorf("error getting user by current user name: %w", err)
 	}
@@ -251,5 +261,23 @@ func HandleFollow(s *types.State, cmd Command) error {
 
 	fmt.Printf("Feed's name: %v\nCurrent user: %v\n", insertFeedFollow.FeedName, insertFeedFollow.UserName)
 
+	return nil 
+}
+
+func HandlerFollowing(s *types.State, cmd Command, user database.User) error {
+	ctx := context.Background() 
+
+	queries := s.Db
+
+	feedFollows, err := queries.GetFeedFollowsForUser(ctx, user.Name)
+	if err != nil {
+		return fmt.Errorf("error getting the feed followed by user %v: %w", user.Name, err)
+	}
+
+	fmt.Printf("Current user: %v\n", user.Name)
+	for _, feed := range feedFollows {
+			fmt.Printf("Feed: %v", feed.FeedName)
+		}	
+	
 	return nil 
 }

@@ -62,13 +62,13 @@ WITH inserted_feed_follow AS (
     $4
   ) RETURNING id, created_at, updated_at, user_id, feed_id
 )
-  SELECT 
-    inserted_feed_follow.id, inserted_feed_follow.created_at, inserted_feed_follow.updated_at, inserted_feed_follow.user_id, inserted_feed_follow.feed_id,
-    feeds.name AS feed_name,
-    users.name AS user_name
-  FROM inserted_feed_follow 
-  INNER JOIN feeds ON inserted_feed_follow.feed_id = feeds.id 
-  INNER JOIN users ON inserted_feed_follow.user_id = users.id
+SELECT 
+  inserted_feed_follow.id, inserted_feed_follow.created_at, inserted_feed_follow.updated_at, inserted_feed_follow.user_id, inserted_feed_follow.feed_id,
+  feeds.name AS feed_name,
+  users.name AS user_name
+FROM inserted_feed_follow 
+INNER JOIN feeds ON inserted_feed_follow.feed_id = feeds.id 
+INNER JOIN users ON inserted_feed_follow.user_id = users.id
 `
 
 type CreateFeedFollowParams struct {
@@ -169,6 +169,44 @@ func (q *Queries) GetFeedByUrl(ctx context.Context, url string) (Feed, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getFeedFollowsForUser = `-- name: GetFeedFollowsForUser :many
+SELECT 
+  feeds.name AS feed_name,
+  users.name as user_name 
+FROM feed_follows 
+INNER JOIN feeds ON feed_follows.feed_id = feeds.id 
+INNER JOIN users ON feed_follows.user_id = users.id
+WHERE users.name = $1
+`
+
+type GetFeedFollowsForUserRow struct {
+	FeedName string
+	UserName string
+}
+
+func (q *Queries) GetFeedFollowsForUser(ctx context.Context, name string) ([]GetFeedFollowsForUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFeedFollowsForUser, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFeedFollowsForUserRow
+	for rows.Next() {
+		var i GetFeedFollowsForUserRow
+		if err := rows.Scan(&i.FeedName, &i.UserName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getFeeds = `-- name: GetFeeds :many
