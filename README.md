@@ -68,9 +68,10 @@ gator unfollow <url>
 
 # List feeds followed by current user
 gator following
+```
 
-Reading Content
-bash
+### Reading Content
+```bash
 
 # Fetch latest posts from followed feeds
 gator agg
