@@ -104,7 +104,7 @@ func HandlerDelete(s *types.State, cmd Command) error {
 		return fmt.Errorf("error deleting users: %v", err)
 	}
 
-	fmt.Println("rows succesfully deleted")
+	fmt.Println("rows successfully deleted")
 	return nil
 }
 
@@ -196,10 +196,10 @@ func HandlerAddFeed(s *types.State, cmd Command, user database.User) error {
 		return fmt.Errorf("error adding feed in list of following feeds by user %v: %w", user, err)
 	}
 
-	fmt.Println("Feed follows added succesfully")
+	fmt.Println("Feed follows added successfully")
 
-	fmt.Println("feed recorded succesfully!")
-	fmt.Printf("ID: %v\nName: %v\nUrl: %v\nCreated At: %v\nUpdated At: %v\n", insertedFeed.ID, insertedFeed.Url, insertedFeed.UserID, insertedFeed.CreatedAt, insertedFeed.UpdatedAt)
+	fmt.Println("feed recorded successfully!")
+	fmt.Printf("ID: %v\nName: %v\nUrl: %v\nCreated At: %v\nUpdated At: %v\n", insertedFeed.ID, insertedFeed.Name, insertedFeed.Url, insertedFeed.CreatedAt, insertedFeed.UpdatedAt)
 
 	return nil 
 }
@@ -279,7 +279,7 @@ func HandlerFollowing(s *types.State, cmd Command, user database.User) error {
 
 	fmt.Printf("Current user: %v\n", user.Name)
 	for _, feed := range feedFollows {
-			fmt.Printf("Feed: %v", feed.FeedName)
+			fmt.Printf("Feed: %v\n", feed.FeedName)
 		}	
 	
 	return nil 
