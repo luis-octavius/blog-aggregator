@@ -146,7 +146,6 @@ func HandlerUsers(s *types.State, cmd Command) error {
 // returns an error if parsing time provided fails 
 func HandlerAgg(s *types.State, cmd Command) error {
 	timeBetweenReqs, err := time.ParseDuration(cmd.Args[0])
-	fmt.Println("Time between reqs: ", timeBetweenReqs)
 	if err != nil {
 		return fmt.Errorf("error parsing time: %w", err)
 	}
@@ -224,7 +223,7 @@ func HandlerListFeeds(s *types.State, cmd Command) error {
 	}
 
 	for _, feed := range listFeeds {
-		fmt.Println("")
+		fmt.Println()
 		fmt.Printf("Name: %v\nURL: %v\nUsername: %v\n", feed.Name, feed.Url, feed.Name_2)
 	}
 
@@ -317,7 +316,16 @@ func HandlerUnfollow(s *types.State, cmd Command, user database.User) error {
 	return nil 
 }
 
+// HandlerBrowse looks for posts in a feed that the current user follows 
+// and return the posts by descending published date 
+// it uses an optional argument to return a specific number of posts, 
+// if not provided the default is 2 posts 
+// 
+// returns an error if query to get posts fails or user does not follow any feed 
+// that has posts 
 func HandlerBrowse(s *types.State, cmd Command, user database.User) error {
+
+	// check if limit argument is provided 
 	var limit int32 
 	if len(cmd.Args) == 0 {
 		limit = 2 
@@ -328,6 +336,7 @@ func HandlerBrowse(s *types.State, cmd Command, user database.User) error {
 
 	queries := s.Db
 
+	// fetch all posts by descending publish date with the provided limit 
 	postsByUser, err := queries.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
 		UserID: user.ID, 
 		Limit: limit,  
@@ -344,6 +353,7 @@ func HandlerBrowse(s *types.State, cmd Command, user database.User) error {
 		fmt.Println()
 		fmt.Printf("Title: %s\n", post.Title)
 		fmt.Printf("Description: %s\n", post.Description)
+		fmt.Printf("Link: %s\n", post.Url)
 		fmt.Printf("Publish Date: %s\n", post.PublishedAt)
 	}
 
@@ -390,6 +400,8 @@ func scrapeFeeds(s *types.State) error {
 	return nil 
 }
 
+// addPosts parses RSS feeds to appropriately save posts 
+// returns an error if FetchFeed fails or CreatePost query fails 
 func addPosts(id int32, db *database.Queries, url string ) error {
 	// transform the feed fetched from db to a RSSFeed struct
 	feedData, err := feed.FetchFeed(context.Background(), url)
@@ -404,26 +416,32 @@ func addPosts(id int32, db *database.Queries, url string ) error {
 			return fmt.Errorf("error creating post: %w", err)
 		}
 
-		fmt.Printf("Post Title: %v\nPost Description: %v\n", createPost.Title, createPost.Description)
-
+		fmt.Printf("\nPost Title: %v\nPost Description: %v\n", createPost.Title, createPost.Description)
 		fmt.Println("success recording post")
 	}
 
 	return nil 
 }
 
+// parseFeedItem handles the parsing and transformation of a RSS 
+// to save it by striping HTML and padronizing Time format
+// returns an error if parsing time fails  
 func parseFeedItem(id int32, f types.RSSItem) (*database.CreatePostParams, error) {
+	// parse time to create a pattern 
 	parsedTime, err := time.Parse(time.RFC1123, f.PubDate)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing time: %w", err)
 	}
+
+	// strip HTML tags
+	parsedDescription := stripHTML(f.Description)
 
 	createPost := database.CreatePostParams{
 		CreatedAt: sql.NullTime{Time: time.Now(), Valid: true},
 		UpdatedAt: sql.NullTime{Time: time.Now(), Valid: true},
 		Title: f.Title, 
 		Url: f.Link,
-		Description: f.Description,
+		Description: parsedDescription,
 		PublishedAt: parsedTime,
 		FeedID: id, 
 	}
