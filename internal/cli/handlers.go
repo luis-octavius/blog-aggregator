@@ -6,10 +6,13 @@ import (
 	"os"
 	"time"
 	"database/sql"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/luis-octavius/blog-aggregator/internal/database"
 	"github.com/luis-octavius/blog-aggregator/internal/types"
+	"github.com/luis-octavius/blog-aggregator/internal/feed"
+
 )
 
 // Command represents a CLI command 
@@ -147,6 +150,8 @@ func HandlerAgg(s *types.State, cmd Command) error {
 	if err != nil {
 		return fmt.Errorf("error parsing time: %w", err)
 	}
+
+	fmt.Printf("Collecting feeds every %s...\n", timeBetweenReqs)
 
 	ticker := time.NewTicker(timeBetweenReqs)
 	for ; ; <-ticker.C {
@@ -312,6 +317,39 @@ func HandlerUnfollow(s *types.State, cmd Command, user database.User) error {
 	return nil 
 }
 
+func HandlerBrowse(s *types.State, cmd Command, user database.User) error {
+	var limit int32 
+	if len(cmd.Args) == 0 {
+		limit = 2 
+	} else {
+		stringToInt, _ := strconv.Atoi(cmd.Args[0])
+		limit = int32(stringToInt)
+	}
+
+	queries := s.Db
+
+	postsByUser, err := queries.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
+		UserID: user.ID, 
+		Limit: limit,  
+	})  
+	if err != nil {
+		return fmt.Errorf("error getting posts by user")
+	}
+
+	if len(postsByUser) == 0 {
+		return fmt.Errorf("user does not have posts")
+	}
+
+	for _, post := range postsByUser {
+		fmt.Println()
+		fmt.Printf("Title: %s\n", post.Title)
+		fmt.Printf("Description: %s\n", post.Description)
+		fmt.Printf("Publish Date: %s\n", post.PublishedAt)
+	}
+
+	return nil 
+}
+
 // scrapeFeeds is a helper function that gets the next feed to fetch, 
 // mark the returned feed as fetched, fetch info about the feed 
 // and prints the name, id, url, created at, updated at and last fetched at fields
@@ -344,7 +382,51 @@ func scrapeFeeds(s *types.State) error {
 		return fmt.Errorf("error fetching feed: %w", err)
 	}
 
-	fmt.Printf("\nID: %v\nName: %v\nURL: %v\nCreated At: %v\nUpdated At: %v\nLast Fetched: %v\n", fetchFeed.ID, fetchFeed.Name, fetchFeed.Url, fetchFeed.CreatedAt, fetchFeed.UpdatedAt, fetchFeed.LastFetchedAt)
+	err = addPosts(fetchFeed.ID, queries, fetchFeed.Url)
+	if err != nil {
+		return fmt.Errorf("error parsing feed data: %w", err)
+	}
 
 	return nil 
+}
+
+func addPosts(id int32, db *database.Queries, url string ) error {
+	// transform the feed fetched from db to a RSSFeed struct
+	feedData, err := feed.FetchFeed(context.Background(), url)
+	if err != nil {
+		return fmt.Errorf("error fetching rss data: %w", err)
+	}
+
+	for _, item := range feedData.Channel.Item {
+		post, err := parseFeedItem(id, item)
+		createPost, err := db.CreatePost(context.Background(), *post)
+		if err != nil {
+			return fmt.Errorf("error creating post: %w", err)
+		}
+
+		fmt.Printf("Post Title: %v\nPost Description: %v\n", createPost.Title, createPost.Description)
+
+		fmt.Println("success recording post")
+	}
+
+	return nil 
+}
+
+func parseFeedItem(id int32, f types.RSSItem) (*database.CreatePostParams, error) {
+	parsedTime, err := time.Parse(time.RFC1123, f.PubDate)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing time: %w", err)
+	}
+
+	createPost := database.CreatePostParams{
+		CreatedAt: sql.NullTime{Time: time.Now(), Valid: true},
+		UpdatedAt: sql.NullTime{Time: time.Now(), Valid: true},
+		Title: f.Title, 
+		Url: f.Link,
+		Description: f.Description,
+		PublishedAt: parsedTime,
+		FeedID: id, 
+	}
+
+	return &createPost, nil
 }
